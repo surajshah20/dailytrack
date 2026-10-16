@@ -15,6 +15,7 @@ import {
 } from '../utils/dateUtils.js';
 import TaskItem from '../components/schedule/TaskItem.jsx';
 import TaskModal from '../components/schedule/TaskModal.jsx';
+import DailyReflection from '../components/reflection/DailyReflection.jsx';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -33,7 +34,6 @@ export default function Schedule() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState(null);
 
-  // Load tasks and categories when the selected date changes
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -54,9 +54,7 @@ export default function Schedule() {
     fetchData();
   }, [selectedDate]);
 
-  // Task Mutations
   const handleToggle = async (taskId) => {
-    // Optimistic UI update
     setTasks((prev) =>
       prev.map((t) =>
         t.id === taskId
@@ -67,7 +65,7 @@ export default function Schedule() {
     try {
       await toggleTaskStatus(taskId);
     } catch (error) {
-      fetchData(); // Rollback if network fails
+      fetchData();
     }
   };
 
@@ -90,7 +88,6 @@ export default function Schedule() {
     }
   };
 
-  // Calculations for top metrics
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => t.status === 'completed').length;
   const remainingTasks = totalTasks - completedTasks;
@@ -99,7 +96,7 @@ export default function Schedule() {
 
   return (
     <div className="space-y-6">
-      {/* Date Header & Navigation Bar */}
+      {/* Date Header & Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white mb-1">Daily Schedule</h1>
@@ -130,14 +127,12 @@ export default function Schedule() {
             <ChevronRight className="w-4 h-4" />
           </button>
 
-          <div className="relative">
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-surface border border-border rounded-lg px-3 py-2 text-xs font-mono text-gray-200 focus:outline-none focus:border-primary-500 cursor-pointer"
-            />
-          </div>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="bg-surface border border-border rounded-lg px-3 py-2 text-xs font-mono text-gray-200 focus:outline-none focus:border-primary-500 cursor-pointer"
+          />
 
           <button
             onClick={() => {
@@ -152,7 +147,7 @@ export default function Schedule() {
         </div>
       </div>
 
-      {/* Daily Snapshot Cards */}
+      {/* Snapshot Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-surface border border-border rounded-xl p-4">
           <div className="flex items-center justify-between text-gray-400 mb-2">
@@ -192,13 +187,11 @@ export default function Schedule() {
         </div>
       </div>
 
-      {/* Tasks List Section */}
+      {/* Tasks List */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
-            Tasks for this day ({remainingTasks} remaining)
-          </h2>
-        </div>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
+          Tasks for this day ({remainingTasks} remaining)
+        </h2>
 
         {loading ? (
           <div className="p-12 text-center text-sm text-gray-400">Loading daily tasks...</div>
@@ -238,7 +231,10 @@ export default function Schedule() {
         )}
       </div>
 
-      {/* Task Create / Edit Modal */}
+      {/* Daily Reflection Journal */}
+      <DailyReflection selectedDate={selectedDate} />
+
+      {/* Task Modal */}
       <TaskModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

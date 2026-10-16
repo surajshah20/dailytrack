@@ -1,4 +1,5 @@
 import pool from '../config/db.js';
+import { instantiateRecurringTasks } from '../services/recurrenceService.js';
 
 export const getTasks = async (req, res) => {
   try {
@@ -7,6 +8,9 @@ export const getTasks = async (req, res) => {
     if (!date) {
       return res.status(400).json({ success: false, message: 'Date parameter (YYYY-MM-DD) is required' });
     }
+
+    // Lazily instantiate recurring rules for this day
+    await instantiateRecurringTasks(req.user.id, date);
 
     const result = await pool.query(
       `SELECT 

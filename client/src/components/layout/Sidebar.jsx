@@ -4,6 +4,7 @@ import {
   Activity, 
   LayoutDashboard,
   CalendarDays, 
+  Calendar,
   Clock, 
   BarChart3, 
   LogOut,
@@ -13,6 +14,7 @@ import {
 const NAV_ITEMS = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Daily Schedule', path: '/schedule', icon: CalendarDays },
+  { name: 'Calendar Heatmap', path: '/calendar', icon: Calendar },
   { name: 'Work Hours', path: '/timer', icon: Clock },
   { name: 'Reports & Analytics', path: '/reports', icon: BarChart3 },
 ];

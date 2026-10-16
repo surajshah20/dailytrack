@@ -7,6 +7,7 @@ import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Schedule from './pages/Schedule.jsx';
+import Calendar from './pages/Calendar.jsx';
 import WorkHours from './pages/WorkHours.jsx';
 import Reports from './pages/Reports.jsx';
 
@@ -36,6 +37,17 @@ export default function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <Schedule />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/calendar"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Calendar />
                   </AppLayout>
                 </ProtectedRoute>
               }
