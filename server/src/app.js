@@ -11,31 +11,56 @@ import calendarRoutes from './routes/calendarRoutes.js';
 
 const app = express();
 
-// Trust Render's reverse proxy for HTTPS cookies
 app.set('trust proxy', 1);
 
+// Dynamic CORS configuration allowing localhost and any *.vercel.app domain
+const allowedOrigins = [
+  'http://localhost:5173',
+  process.env.CLIENT_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow non-browser requests (like curl, health checks)
+    if (!origin) return callback(null, true);
+
+    if (
+      allowedOrigins.includes(origin) || 
+      origin.endsWith('.vercel.app')
+    ) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
   credentials: true
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Route Registrations
-app.use('/api/auth', authRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/work-sessions', sessionRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/reflections', reflectionRoutes);
-app.use('/api/calendar', calendarRoutes);
+// Support both /api/* and /* so missing /api in Vercel never causes a 404
+app.use(['/api/auth', '/auth'], authRoutes);
+app.use(['/api/categories', '/categories'], categoryRoutes);
+app.use(['/api/tasks', '/tasks'], taskRoutes);
+app.use(['/api/work-sessions', '/work-sessions'], sessionRoutes);
+app.use(['/api/reports', '/reports'], reportRoutes);
+app.use(['/api/reflections', '/reflections'], reflectionRoutes);
+app.use(['/api/calendar', '/calendar'], calendarRoutes);
 
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/health'], (req, res) => {
   res.status(200).json({
     success: true,
     message: 'DailyTrack API is healthy',
     timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    name: 'DailyTrack API',
+    status: 'online'
   });
 });
 
