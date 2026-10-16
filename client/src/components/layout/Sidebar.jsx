@@ -23,7 +23,8 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
 
   return (
-    <aside className="w-64 bg-surface border-r border-border flex flex-col shrink-0 min-h-screen">
+    // 'hidden md:flex' hides the sidebar on mobile and shows on desktop
+    <aside className="hidden md:flex w-64 bg-surface border-r border-border flex-col shrink-0 min-h-screen">
       <div className="h-16 flex items-center gap-3 px-6 border-b border-border">
         <div className="w-8 h-8 rounded-lg bg-primary-600/20 border border-primary-500/30 flex items-center justify-center text-primary-400">
           <Activity className="w-5 h-5 text-primary-500" />
