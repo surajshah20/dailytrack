@@ -5,6 +5,7 @@ import authRoutes from './routes/authRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import sessionRoutes from './routes/sessionRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/work-sessions', sessionRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Baseline Health Check Route
 app.get('/api/health', (req, res) => {

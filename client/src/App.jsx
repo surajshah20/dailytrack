@@ -5,8 +5,10 @@ import { ProtectedRoute } from './components/common/ProtectedRoute.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
+import Dashboard from './pages/Dashboard.jsx';
 import Schedule from './pages/Schedule.jsx';
 import WorkHours from './pages/WorkHours.jsx';
+import Reports from './pages/Reports.jsx';
 
 export default function App() {
   return (
@@ -17,6 +19,17 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Dashboard />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+
             <Route
               path="/schedule"
               element={
@@ -39,8 +52,18 @@ export default function App() {
               }
             />
 
-            <Route path="/" element={<Navigate to="/schedule" replace />} />
-            <Route path="*" element={<Navigate to="/schedule" replace />} />
+            <Route
+              path="/reports"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Reports />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </TimerProvider>
       </AuthProvider>
