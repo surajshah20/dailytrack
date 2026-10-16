@@ -11,6 +11,9 @@ import calendarRoutes from './routes/calendarRoutes.js';
 
 const app = express();
 
+// Trust Render's reverse proxy for HTTPS cookies
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true
@@ -19,6 +22,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Route Registrations
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/tasks', taskRoutes);

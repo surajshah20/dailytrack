@@ -12,18 +12,21 @@ export const verifyToken = (token) => {
 };
 
 export const setTokenCookie = (res, token) => {
+  const isProduction = process.env.NODE_ENV === 'production';
   res.cookie('dailytrack_token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    // Cross-site cookie between Vercel and Render requires 'none' and 'secure: true'
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 };
 
 export const clearTokenCookie = (res) => {
+  const isProduction = process.env.NODE_ENV === 'production';
   res.clearCookie('dailytrack_token', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
   });
 };
