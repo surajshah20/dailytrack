@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
+import sessionRoutes from './routes/sessionRoutes.js';
 
 const app = express();
 
@@ -16,6 +19,9 @@ app.use(cookieParser());
 
 // Route Registrations
 app.use('/api/auth', authRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/work-sessions', sessionRoutes);
 
 // Baseline Health Check Route
 app.get('/api/health', (req, res) => {
