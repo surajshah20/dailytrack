@@ -8,7 +8,6 @@ export const AuthProvider = ({ children }) => {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if an existing session cookie is valid on initial app mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -20,6 +19,7 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         setUser(null);
         setSettings(null);
+        localStorage.removeItem('dailytrack_token');
       } finally {
         setLoading(false);
       }
@@ -31,8 +31,10 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const result = await loginUser({ email, password });
     if (result.success) {
+      if (result.data?.token) {
+        localStorage.setItem('dailytrack_token', result.data.token);
+      }
       setUser(result.data.user);
-      // Fetch fresh settings
       const meResult = await getMe();
       if (meResult.success) {
         setSettings(meResult.data.settings);
@@ -44,6 +46,9 @@ export const AuthProvider = ({ children }) => {
   const register = async (email, password, displayName) => {
     const result = await registerUser({ email, password, displayName });
     if (result.success) {
+      if (result.data?.token) {
+        localStorage.setItem('dailytrack_token', result.data.token);
+      }
       setUser(result.data.user);
       const meResult = await getMe();
       if (meResult.success) {
@@ -57,6 +62,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await logoutUser();
     } finally {
+      localStorage.removeItem('dailytrack_token');
       setUser(null);
       setSettings(null);
     }
