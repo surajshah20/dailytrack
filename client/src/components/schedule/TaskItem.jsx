@@ -1,80 +1,63 @@
-import { Check, Clock, Trash2, Edit2 } from 'lucide-react';
+import { Check, Pencil, Trash2 } from 'lucide-react';
 import { formatDuration } from '../../utils/dateUtils.js';
 
-const PRIORITY_BADGES = {
-  urgent: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
-  high: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-  medium: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-  low: 'bg-gray-500/10 text-gray-400 border-gray-500/30',
+const PRIORITY_BADGE = {
+  urgent: 'badge badge-danger',
+  high: 'badge badge-warning',
 };
 
 export default function TaskItem({ task, onToggle, onEdit, onDelete }) {
-  const isCompleted = task.status === 'completed';
+  const done = task.status === 'completed';
+  const hasTime = task.start_time || task.end_time;
 
   return (
-    <div className={`group flex items-start justify-between p-4 rounded-xl border transition-all ${
-      isCompleted 
-        ? 'bg-surface/40 border-border/40 opacity-70' 
-        : 'bg-surface border-border hover:border-border/80 shadow-sm'
-    }`}>
-      {/* Checkbox & Task Information */}
-      <div className="flex items-start gap-3.5 flex-1 min-w-0">
+    <li className="group flex items-start justify-between gap-3 px-5 py-3.5">
+      <div className="flex min-w-0 flex-1 items-start gap-3">
         <button
+          type="button"
+          role="checkbox"
+          aria-checked={done}
+          aria-label={`Mark "${task.title}" as ${done ? 'not done' : 'done'}`}
           onClick={() => onToggle(task.id)}
-          className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
-            isCompleted
-              ? 'bg-primary-600 border-primary-500 text-white'
-              : 'border-gray-500 hover:border-primary-400 bg-surface-elevated'
+          className={`mt-0.5 flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border transition-colors ${
+            done
+              ? 'border-accent bg-accent text-accent-fg'
+              : 'border-border-strong bg-surface hover:border-accent'
           }`}
         >
-          {isCompleted && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+          {done && <Check className="h-3 w-3" strokeWidth={3} />}
         </button>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <h4 className={`text-sm font-medium tracking-tight ${
-              isCompleted ? 'line-through text-gray-400' : 'text-white'
-            }`}>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className={`text-sm font-medium ${done ? 'text-fg-subtle line-through' : 'text-fg'}`}>
               {task.title}
-            </h4>
-
-            {/* Category Pill */}
-            {task.category_name && (
-              <span 
-                className="text-[11px] font-medium px-2 py-0.5 rounded-full border"
-                style={{
-                  backgroundColor: `${task.category_color}15`,
-                  borderColor: `${task.category_color}40`,
-                  color: task.category_color
-                }}
-              >
-                {task.category_name}
-              </span>
-            )}
-
-            {/* Priority Badge */}
-            <span className={`text-[10px] uppercase font-semibold px-2 py-0.5 rounded border tracking-wider ${
-              PRIORITY_BADGES[task.priority] || PRIORITY_BADGES.medium
-            }`}>
-              {task.priority}
             </span>
+            {PRIORITY_BADGE[task.priority] && (
+              <span className={`${PRIORITY_BADGE[task.priority]} capitalize`}>{task.priority}</span>
+            )}
           </div>
 
           {task.description && (
-            <p className="text-xs text-gray-400 mb-2 line-clamp-2">{task.description}</p>
+            <p className="mt-0.5 line-clamp-2 text-sm text-fg-muted">{task.description}</p>
           )}
 
-          {/* Time Metadata */}
-          <div className="flex items-center gap-4 text-xs text-gray-400">
-            {task.estimated_minutes > 0 && (
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-gray-500" />
-                Est: {formatDuration(task.estimated_minutes)}
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-subtle">
+            {task.category_name && (
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: task.category_color || 'currentColor' }}
+                  aria-hidden="true"
+                />
+                {task.category_name}
               </span>
             )}
-
-            {(task.start_time || task.end_time) && (
-              <span className="text-gray-400 font-mono">
+            {task.estimated_minutes > 0 && (
+              <span className="tabular-nums">{formatDuration(task.estimated_minutes)}</span>
+            )}
+            {hasTime && (
+              <span className="tabular-nums">
                 {task.start_time || '--:--'} – {task.end_time || '--:--'}
               </span>
             )}
@@ -82,23 +65,26 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }) {
         </div>
       </div>
 
-      {/* Quick Action Buttons */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-3 shrink-0">
+      <div className="flex shrink-0 items-center gap-0.5 sm:opacity-0 sm:transition-opacity sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
         <button
+          type="button"
           onClick={() => onEdit(task)}
-          className="p-1.5 text-gray-400 hover:text-white hover:bg-surface-elevated rounded-lg transition-colors cursor-pointer"
-          title="Edit Task"
+          aria-label={`Edit "${task.title}"`}
+          title="Edit"
+          className="btn-ghost h-8 w-8 px-0"
         >
-          <Edit2 className="w-4 h-4" />
+          <Pencil className="h-4 w-4" />
         </button>
         <button
+          type="button"
           onClick={() => onDelete(task.id)}
-          className="p-1.5 text-gray-400 hover:text-rose-400 hover:bg-surface-elevated rounded-lg transition-colors cursor-pointer"
-          title="Delete Task"
+          aria-label={`Delete "${task.title}"`}
+          title="Delete"
+          className="btn-ghost h-8 w-8 px-0 hover:!text-danger"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="h-4 w-4" />
         </button>
       </div>
-    </div>
+    </li>
   );
 }

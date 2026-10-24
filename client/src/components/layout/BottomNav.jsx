@@ -1,43 +1,27 @@
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  CalendarDays, 
-  Clock, 
-  Calendar, 
-  BarChart3 
-} from 'lucide-react';
-
-const MOBILE_NAV = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'Schedule', path: '/schedule', icon: CalendarDays },
-  { name: 'Timer', path: '/timer', icon: Clock },
-  { name: 'Calendar', path: '/calendar', icon: Calendar },
-  { name: 'Reports', path: '/reports', icon: BarChart3 },
-];
+import { NAV_ITEMS } from './navItems.js';
 
 export default function BottomNav() {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur-lg border-t border-border px-2 py-1.5 flex items-center justify-around shadow-2xl">
-      {MOBILE_NAV.map((item) => {
-        const Icon = item.icon;
-        return (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.path === '/'}
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${
-                isActive
-                  ? 'text-primary-400 font-semibold'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`
-            }
-          >
-            <Icon className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px] tracking-tight">{item.name}</span>
-          </NavLink>
-        );
-      })}
+    <nav
+      aria-label="Main"
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+    >
+      {NAV_ITEMS.map(({ short, path, icon: Icon }) => (
+        <NavLink
+          key={path}
+          to={path}
+          end={path === '/'}
+          className={({ isActive }) =>
+            `flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px] transition-colors ${
+              isActive ? 'font-medium text-accent' : 'text-fg-subtle hover:text-fg'
+            }`
+          }
+        >
+          <Icon className="h-5 w-5" aria-hidden="true" />
+          {short}
+        </NavLink>
+      ))}
     </nav>
   );
 }

@@ -1,46 +1,36 @@
+import { LogOut } from 'lucide-react';
 import Sidebar from './Sidebar.jsx';
 import BottomNav from './BottomNav.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { Activity, LogOut } from 'lucide-react';
 
 export default function AppLayout({ children }) {
   const { user, logout } = useAuth();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col md:flex-row text-gray-100">
-      {/* Mobile Top Header */}
-      <header className="md:hidden h-14 bg-surface border-b border-border flex items-center justify-between px-4 sticky top-0 z-30">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-primary-600/20 border border-primary-500/30 flex items-center justify-center text-primary-400">
-            <Activity className="w-4 h-4 text-primary-500" />
-          </div>
-          <span className="font-bold text-sm text-white tracking-tight">DailyTrack</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-300 font-medium">{user?.display_name}</span>
+    <div className="flex min-h-dvh flex-col bg-background text-fg md:flex-row">
+      {/* Mobile top bar */}
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-surface px-4 pt-[env(safe-area-inset-top)] md:hidden">
+        <span className="text-base font-semibold tracking-tight">DailyTrack</span>
+        <div className="flex items-center gap-1">
+          <span className="max-w-[10rem] truncate text-sm text-fg-muted">{user?.display_name}</span>
           <button
+            type="button"
             onClick={logout}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-rose-400 bg-surface-elevated transition-colors cursor-pointer"
-            title="Sign Out"
+            aria-label="Sign out"
+            className="cursor-pointer rounded-md p-2 text-fg-muted transition-colors hover:bg-muted hover:text-fg"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="h-4 w-4" />
           </button>
         </div>
       </header>
 
-      {/* Desktop Sidebar */}
       <Sidebar />
 
-      {/* Main Content Area */}
-      <main className="flex-1 min-w-0 overflow-y-auto">
-        {/* pb-24 ensures mobile content is never hidden behind the bottom navigation bar */}
-        <div className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8 pb-24 md:pb-8">
-          {children}
-        </div>
+      <main className="min-w-0 flex-1">
+        {/* Bottom padding keeps content clear of the mobile tab bar */}
+        <div className="mx-auto max-w-6xl p-4 pb-24 sm:p-6 sm:pb-24 md:p-8">{children}</div>
       </main>
 
-      {/* Mobile Bottom Navigation */}
       <BottomNav />
     </div>
   );

@@ -1,134 +1,129 @@
 import { useState, useEffect } from 'react';
 import { getReflection, saveReflection } from '../../api/reflections.js';
-import { BookOpen, Check, Save } from 'lucide-react';
+
+const EMPTY = { accomplishments: '', challenges: '', tomorrowFocus: '', generalNotes: '' };
 
 export default function DailyReflection({ selectedDate }) {
-  const [accomplishments, setAccomplishments] = useState('');
-  const [challenges, setChallenges] = useState('');
-  const [tomorrowFocus, setTomorrowFocus] = useState('');
-  const [generalNotes, setGeneralNotes] = useState('');
+  const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
-  const [savedSuccess, setSavedSuccess] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    let isMounted = true;
-    getReflection(selectedDate).then((res) => {
-      if (isMounted && res.success && res.data) {
-        setAccomplishments(res.data.accomplishments || '');
-        setChallenges(res.data.challenges || '');
-        setTomorrowFocus(res.data.tomorrow_focus || '');
-        setGeneralNotes(res.data.general_notes || '');
-      } else if (isMounted) {
-        setAccomplishments('');
-        setChallenges('');
-        setTomorrowFocus('');
-        setGeneralNotes('');
-      }
-    });
-    return () => { isMounted = false; };
+    let active = true;
+    setError('');
+    getReflection(selectedDate)
+      .then((res) => {
+        if (!active) return;
+        if (res.success && res.data) {
+          setForm({
+            accomplishments: res.data.accomplishments || '',
+            challenges: res.data.challenges || '',
+            tomorrowFocus: res.data.tomorrow_focus || '',
+            generalNotes: res.data.general_notes || '',
+          });
+        } else {
+          setForm(EMPTY);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setForm(EMPTY);
+          setError('Could not load the reflection for this day.');
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, [selectedDate]);
+
+  const update = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setSavedSuccess(false);
+    setSaved(false);
+    setError('');
     try {
-      await saveReflection(selectedDate, {
-        accomplishments,
-        challenges,
-        tomorrowFocus,
-        generalNotes
-      });
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
+      await saveReflection(selectedDate, form);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch {
+      setError('Could not save. Try again.');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="bg-surface border border-border rounded-2xl p-6 shadow-xl space-y-4">
-      <div className="flex items-center justify-between pb-3 border-b border-border">
-        <div className="flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-primary-400" />
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300">
-            Daily Reflection & Notes
-          </h3>
-        </div>
-
-        {savedSuccess && (
-          <span className="text-xs text-emerald-400 flex items-center gap-1 font-medium">
-            <Check className="w-3.5 h-3.5" /> Saved
-          </span>
-        )}
+    <section className="card">
+      <div className="border-b border-border px-5 py-3.5">
+        <h2 className="text-sm font-medium text-fg">Daily reflection</h2>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <form onSubmit={handleSave} className="space-y-4 p-5">
+        {error && (
+          <div role="alert" className="alert-error">
+            {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
-            <label className="block text-xs font-semibold text-emerald-400 mb-1">
-              What did I accomplish?
-            </label>
+            <label htmlFor="ref-accomplished" className="label">What did you get done?</label>
             <textarea
-              rows="3"
-              value={accomplishments}
-              onChange={(e) => setAccomplishments(e.target.value)}
-              placeholder="Key achievements, completed modules, wins..."
-              className="w-full bg-surface-elevated border border-border rounded-xl p-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500"
+              id="ref-accomplished"
+              rows={4}
+              value={form.accomplishments}
+              onChange={update('accomplishments')}
+              className="input h-auto resize-y py-2"
             />
           </div>
-
           <div>
-            <label className="block text-xs font-semibold text-rose-400 mb-1">
-              What went wrong / bottlenecks?
-            </label>
+            <label htmlFor="ref-challenges" className="label">What got in the way?</label>
             <textarea
-              rows="3"
-              value={challenges}
-              onChange={(e) => setChallenges(e.target.value)}
-              placeholder="Distractions, bugs, blockers, misestimates..."
-              className="w-full bg-surface-elevated border border-border rounded-xl p-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-rose-500"
+              id="ref-challenges"
+              rows={4}
+              value={form.challenges}
+              onChange={update('challenges')}
+              className="input h-auto resize-y py-2"
             />
           </div>
-
           <div>
-            <label className="block text-xs font-semibold text-blue-400 mb-1">
-              What should I focus on tomorrow?
-            </label>
+            <label htmlFor="ref-tomorrow" className="label">Focus for tomorrow</label>
             <textarea
-              rows="3"
-              value={tomorrowFocus}
-              onChange={(e) => setTomorrowFocus(e.target.value)}
-              placeholder="Top 1-3 priorities for the next day..."
-              className="w-full bg-surface-elevated border border-border rounded-xl p-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              id="ref-tomorrow"
+              rows={4}
+              value={form.tomorrowFocus}
+              onChange={update('tomorrowFocus')}
+              className="input h-auto resize-y py-2"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1">
-            General Notes
-          </label>
+          <label htmlFor="ref-notes" className="label">Notes</label>
           <input
+            id="ref-notes"
             type="text"
-            value={generalNotes}
-            onChange={(e) => setGeneralNotes(e.target.value)}
-            placeholder="Links, meeting notes, ideas..."
-            className="w-full bg-surface-elevated border border-border rounded-xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-primary-500"
+            value={form.generalNotes}
+            onChange={update('generalNotes')}
+            placeholder="Links, ideas, anything else"
+            className="input"
           />
         </div>
 
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-xl text-xs font-medium transition-colors cursor-pointer"
-          >
-            <Save className="w-3.5 h-3.5" />
-            {saving ? 'Saving...' : 'Save Reflection'}
+        <div className="flex items-center justify-end gap-3">
+          {saved && (
+            <span role="status" className="text-sm text-success">
+              Saved
+            </span>
+          )}
+          <button type="submit" disabled={saving} className="btn-primary">
+            {saving ? 'Saving…' : 'Save reflection'}
           </button>
         </div>
       </form>
-    </div>
+    </section>
   );
 }

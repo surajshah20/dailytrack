@@ -2,14 +2,255 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: dark;
+@layer base {
+  :root {
+    color-scheme: light;
+    --bg: 248 249 250;
+    --surface: 255 255 255;
+    --muted: 241 243 245;
+    --border: 228 231 235;
+    --border-strong: 209 213 219;
+
+    --fg: 17 24 39;
+    --fg-muted: 75 85 99;
+    --fg-subtle: 107 114 128;
+
+    --accent: 37 99 235;
+    --accent-hover: 29 78 216;
+    --accent-subtle: 239 246 255;
+    --accent-fg: 255 255 255;
+
+    --success: 21 128 61;
+    --success-subtle: 240 253 244;
+    --warning: 180 83 9;
+    --warning-subtle: 255 251 235;
+    --danger: 185 28 28;
+    --danger-subtle: 254 242 242;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --bg: 15 17 21;
+    --surface: 22 25 30;
+    --muted: 30 34 40;
+    --border: 39 44 52;
+    --border-strong: 55 62 72;
+
+    --fg: 237 239 242;
+    --fg-muted: 160 167 178;
+    --fg-subtle: 120 128 140;
+
+    --accent: 59 130 246;
+    --accent-hover: 96 165 250;
+    --accent-subtle: 23 37 84;
+    --accent-fg: 255 255 255;
+
+    --success: 74 222 128;
+    --success-subtle: 20 45 30;
+    --warning: 251 191 36;
+    --warning-subtle: 50 38 15;
+    --danger: 248 113 113;
+    --danger-subtle: 55 22 22;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: rgb(var(--bg));
+    color: rgb(var(--fg));
+    font-family: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
-body {
-  margin: 0;
-  background-color: #0B0F19;
-  color: #F3F4F6;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  min-height: 100vh;
+@layer components {
+  .card {
+    background-color: rgb(var(--surface));
+    border: 1px solid rgb(var(--border));
+    border-radius: 8px;
+  }
+
+  .label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(var(--fg));
+  }
+
+  .input {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    font-size: 0.875rem;
+    color: rgb(var(--fg));
+    background-color: rgb(var(--surface));
+    border: 1px solid rgb(var(--border-strong));
+    border-radius: 6px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .input::placeholder {
+    color: rgb(var(--fg-subtle));
+  }
+  .input:focus-visible {
+    outline: none;
+    border-color: rgb(var(--accent));
+    box-shadow: 0 0 0 3px rgb(var(--accent) / 0.15);
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 16px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(var(--accent-fg));
+    background-color: rgb(var(--accent));
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: rgb(var(--accent-hover));
+  }
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .alert-error {
+    padding: 10px 12px;
+    font-size: 0.875rem;
+    color: rgb(var(--danger));
+    background-color: rgb(var(--danger-subtle));
+    border: 1px solid rgb(var(--danger) / 0.25);
+    border-radius: 6px;
+  }
+
+  .link {
+    font-weight: 500;
+    color: rgb(var(--accent));
+  }
+  .link:hover {
+    text-decoration: underline;
+  }
 }
+
+@layer components {
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 16px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(var(--fg));
+    background-color: rgb(var(--surface));
+    border: 1px solid rgb(var(--border-strong));
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: rgb(var(--muted));
+  }
+  .btn-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(var(--fg-muted));
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    color: rgb(var(--fg));
+    background-color: rgb(var(--muted));
+  }
+
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    color: rgb(var(--fg-muted));
+    background-color: rgb(var(--surface));
+    border: 1px solid rgb(var(--border-strong));
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .btn-icon:hover {
+    color: rgb(var(--fg));
+    background-color: rgb(var(--muted));
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: rgb(var(--fg-muted));
+    background-color: rgb(var(--muted));
+    border-radius: 4px;
+  }
+  .badge-success {
+    color: rgb(var(--success));
+    background-color: rgb(var(--success-subtle));
+  }
+  .badge-warning {
+    color: rgb(var(--warning));
+    background-color: rgb(var(--warning-subtle));
+  }
+  .badge-danger {
+    color: rgb(var(--danger));
+    background-color: rgb(var(--danger-subtle));
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in 0.15s ease-out; }
+.animate-sheet-up { animation: sheet-up 0.18s ease-out; }

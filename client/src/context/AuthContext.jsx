@@ -28,6 +28,15 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
+useEffect(() => {
+  const onUnauthorized = () => {
+    setUser(null);
+    setSettings(null);
+  };
+  window.addEventListener('auth:unauthorized', onUnauthorized);
+  return () => window.removeEventListener('auth:unauthorized', onUnauthorized);
+}, []);
+
   const login = async (email, password) => {
     const result = await loginUser({ email, password });
     if (result.success) {

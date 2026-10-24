@@ -1,82 +1,51 @@
 import { NavLink } from 'react-router-dom';
+import { LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { 
-  Activity, 
-  LayoutDashboard,
-  CalendarDays, 
-  Calendar,
-  Clock, 
-  BarChart3, 
-  LogOut,
-  User
-} from 'lucide-react';
-
-const NAV_ITEMS = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'Daily Schedule', path: '/schedule', icon: CalendarDays },
-  { name: 'Calendar Heatmap', path: '/calendar', icon: Calendar },
-  { name: 'Work Hours', path: '/timer', icon: Clock },
-  { name: 'Reports & Analytics', path: '/reports', icon: BarChart3 },
-];
+import { NAV_ITEMS } from './navItems.js';
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
 
   return (
-    // 'hidden md:flex' hides the sidebar on mobile and shows on desktop
-    <aside className="hidden md:flex w-64 bg-surface border-r border-border flex-col shrink-0 min-h-screen">
-      <div className="h-16 flex items-center gap-3 px-6 border-b border-border">
-        <div className="w-8 h-8 rounded-lg bg-primary-600/20 border border-primary-500/30 flex items-center justify-center text-primary-400">
-          <Activity className="w-5 h-5 text-primary-500" />
-        </div>
-        <div>
-          <span className="font-bold text-base tracking-tight text-white block">DailyTrack</span>
-          <span className="text-[10px] uppercase font-semibold tracking-wider text-gray-500">Productivity Suite</span>
-        </div>
+    <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:sticky md:top-0 md:flex md:h-dvh">
+      <div className="flex h-14 items-center border-b border-border px-5">
+        <span className="text-base font-semibold tracking-tight text-fg">DailyTrack</span>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/20'
-                    : 'text-gray-400 hover:text-white hover:bg-surface-elevated'
-                }`
-              }
-            >
-              <Icon className="w-4 h-4" />
-              <span>{item.name}</span>
-            </NavLink>
-          );
-        })}
+      <nav aria-label="Main" className="flex-1 space-y-0.5 overflow-y-auto p-3">
+        {NAV_ITEMS.map(({ name, path, icon: Icon }) => (
+          <NavLink
+            key={path}
+            to={path}
+            end={path === '/'}
+            className={({ isActive }) =>
+              `flex h-9 items-center gap-3 rounded-md px-3 text-sm transition-colors ${
+                isActive
+                  ? 'bg-muted font-medium text-fg'
+                  : 'text-fg-muted hover:bg-muted hover:text-fg'
+              }`
+            }
+          >
+            <Icon className="h-4 w-4" aria-hidden="true" />
+            {name}
+          </NavLink>
+        ))}
       </nav>
 
-      <div className="p-4 border-t border-border">
-        <div className="flex items-center justify-between p-2 rounded-xl bg-surface-elevated border border-border/50">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-gray-800 border border-border flex items-center justify-center text-gray-300 shrink-0">
-              <User className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-white truncate">{user?.display_name}</p>
-              <p className="text-[10px] text-gray-400 truncate">{user?.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={logout}
-            title="Sign out"
-            className="p-1.5 rounded-lg text-gray-400 hover:text-rose-400 hover:bg-surface transition-colors cursor-pointer"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+      <div className="flex items-center justify-between gap-2 border-t border-border p-3">
+        <div className="min-w-0 px-2">
+          <p className="truncate text-sm font-medium text-fg">{user?.display_name}</p>
+          <p className="truncate text-xs text-fg-subtle">{user?.email}</p>
         </div>
+        <button
+          type="button"
+          onClick={logout}
+          aria-label="Sign out"
+          title="Sign out"
+          className="shrink-0 cursor-pointer rounded-md p-2 text-fg-muted transition-colors hover:bg-muted hover:text-fg"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
       </div>
     </aside>
   );

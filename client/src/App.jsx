@@ -1,15 +1,35 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { TimerProvider } from './context/TimerContext.jsx';
 import { ProtectedRoute } from './components/common/ProtectedRoute.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
-import Dashboard from './pages/Dashboard.jsx';
-import Schedule from './pages/Schedule.jsx';
-import Calendar from './pages/Calendar.jsx';
-import WorkHours from './pages/WorkHours.jsx';
-import Reports from './pages/Reports.jsx';
+
+const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
+const Schedule = lazy(() => import('./pages/Schedule.jsx'));
+const Calendar = lazy(() => import('./pages/Calendar.jsx'));
+const WorkHours = lazy(() => import('./pages/WorkHours.jsx'));
+const Reports = lazy(() => import('./pages/Reports.jsx'));
+
+function PageFallback() {
+  return <div className="py-24 text-center text-sm text-fg-subtle">Loading…</div>;
+}
+
+// One protected shell for every signed-in page. AppLayout stays mounted
+// while the user navigates, so the sidebar and timer UI don't remount.
+function ProtectedShell() {
+  return (
+    <ProtectedRoute>
+      <AppLayout>
+        <Suspense fallback={<PageFallback />}>
+          <Outlet />
+        </Suspense>
+      </AppLayout>
+    </ProtectedRoute>
+  );
+}
 
 export default function App() {
   return (
@@ -19,61 +39,14 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Dashboard />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
 
-            <Route
-              path="/schedule"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Schedule />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/calendar"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Calendar />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/timer"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <WorkHours />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Reports />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
+            <Route element={<ProtectedShell />}>
+              <Route index element={<Dashboard />} />
+              <Route path="schedule" element={<Schedule />} />
+              <Route path="calendar" element={<Calendar />} />
+              <Route path="timer" element={<WorkHours />} />
+              <Route path="reports" element={<Reports />} />
+            </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

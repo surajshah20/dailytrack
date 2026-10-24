@@ -17,4 +17,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// If the session dies mid-use, drop the token and let the app send the user to /login.
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('dailytrack_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  config.headers['X-Timezone'] = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return config;
+});
+
+
 export default api;

@@ -1,20 +1,18 @@
 import { useState, useEffect } from 'react';
+import { Trash2 } from 'lucide-react';
 import { getSessions, deleteSession } from '../api/sessions.js';
 import { getTasks } from '../api/tasks.js';
 import { getCategories } from '../api/categories.js';
-import { toISODateString, formatDisplayDate, addDaysToDate, formatDuration } from '../utils/dateUtils.js';
+import { toISODateString, formatDisplayDate, formatDuration } from '../utils/dateUtils.js';
+import PageHeader from '../components/common/PageHeader.jsx';
+import DateNavigator from '../components/common/DateNavigator.jsx';
+import StatCard from '../components/common/StatCard.jsx';
+import ProgressBar from '../components/common/ProgressBar.jsx';
 import WorkTimer from '../components/timer/WorkTimer.jsx';
 import ManualSessionModal from '../components/timer/ManualSessionModal.jsx';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Clock, 
-  Trash2, 
-  TrendingUp, 
-  TrendingDown, 
-  Target, 
-  CheckCircle2 
-} from 'lucide-react';
+
+const timeOf = (iso) =>
+  new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 export default function WorkHours() {
   const [selectedDate, setSelectedDate] = useState(toISODateString(new Date()));
@@ -23,6 +21,7 @@ export default function WorkHours() {
   const [categories, setCategories] = useState([]);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -30,13 +29,15 @@ export default function WorkHours() {
       const [sessRes, tasksRes, catsRes] = await Promise.all([
         getSessions(selectedDate),
         getTasks(selectedDate),
-        getCategories()
+        getCategories(),
       ]);
       if (sessRes.success) setSessions(sessRes.data);
       if (tasksRes.success) setTasks(tasksRes.data);
       if (catsRes.success) setCategories(catsRes.data);
+      setError('');
     } catch (err) {
       console.error('Error fetching work hour data:', err);
+      setError('Could not load work hours. Please refresh.');
     } finally {
       setLoading(false);
     }
@@ -51,56 +52,29 @@ export default function WorkHours() {
     setSessions((prev) => prev.filter((s) => s.id !== id));
     try {
       await deleteSession(id);
-      fetchData();
-    } catch (err) {
-      fetchData();
+    } catch {
+      setError('Could not delete the session.');
     }
+    fetchData();
   };
 
-  // Planned vs. Actual Calculations (Section 6 of requirements)
   const plannedMinutes = tasks.reduce((sum, t) => sum + (t.estimated_minutes || 0), 0);
   const workedMinutes = sessions.reduce((sum, s) => sum + Math.round((s.duration_seconds || 0) / 60), 0);
   const deltaMinutes = workedMinutes - plannedMinutes;
-  const timeEfficiency = plannedMinutes > 0 ? Math.round((workedMinutes / plannedMinutes) * 100) : 0;
+  const efficiency = plannedMinutes > 0 ? Math.round((workedMinutes / plannedMinutes) * 100) : 0;
 
   return (
     <div className="space-y-6">
-      {/* Date Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white mb-1">Work Hour Tracking</h1>
-          <p className="text-sm text-gray-400">{formatDisplayDate(selectedDate)}</p>
-        </div>
+      <PageHeader title="Work hours" subtitle={formatDisplayDate(selectedDate)}>
+        <DateNavigator value={selectedDate} onChange={setSelectedDate} />
+      </PageHeader>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSelectedDate(addDaysToDate(selectedDate, -1))}
-            className="p-2 rounded-lg bg-surface border border-border text-gray-300 hover:text-white cursor-pointer"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setSelectedDate(toISODateString(new Date()))}
-            className="px-3 py-2 rounded-lg bg-surface border border-border text-xs font-semibold text-gray-300 hover:text-white cursor-pointer"
-          >
-            Today
-          </button>
-          <button
-            onClick={() => setSelectedDate(addDaysToDate(selectedDate, 1))}
-            className="p-2 rounded-lg bg-surface border border-border text-gray-300 hover:text-white cursor-pointer"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-surface border border-border rounded-lg px-3 py-2 text-xs font-mono text-gray-200 focus:outline-none cursor-pointer"
-          />
+      {error && (
+        <div role="alert" className="alert-error">
+          {error}
         </div>
-      </div>
+      )}
 
-      {/* Live Timer Widget */}
       <WorkTimer
         tasks={tasks}
         categories={categories}
@@ -108,116 +82,76 @@ export default function WorkHours() {
         onOpenManualModal={() => setIsManualModalOpen(true)}
       />
 
-      {/* Planned vs. Actual Comparison Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-surface border border-border rounded-xl p-4">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Planned Work</span>
-            <Target className="w-4 h-4 text-blue-400" />
-          </div>
-          <div className="text-2xl font-bold text-white">{formatDuration(plannedMinutes)}</div>
-        </div>
-
-        <div className="bg-surface border border-border rounded-xl p-4">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Actual Worked</span>
-            <Clock className="w-4 h-4 text-emerald-400" />
-          </div>
-          <div className="text-2xl font-bold text-emerald-400">{formatDuration(workedMinutes)}</div>
-        </div>
-
-        <div className="bg-surface border border-border rounded-xl p-4">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Difference</span>
-            {deltaMinutes >= 0 ? (
-              <TrendingUp className="w-4 h-4 text-emerald-400" />
-            ) : (
-              <TrendingDown className="w-4 h-4 text-amber-400" />
-            )}
-          </div>
-          <div className={`text-2xl font-bold ${deltaMinutes >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-            {deltaMinutes >= 0 ? `+${formatDuration(deltaMinutes)}` : `-${formatDuration(Math.abs(deltaMinutes))}`}
-          </div>
-        </div>
-
-        <div className="bg-surface border border-border rounded-xl p-4">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Time Efficiency</span>
-            <span className="text-xs font-semibold text-primary-400">{timeEfficiency}%</span>
-          </div>
-          <div className="w-full bg-surface-elevated rounded-full h-2 mt-3 overflow-hidden">
-            <div
-              className="bg-primary-500 h-full rounded-full transition-all duration-300"
-              style={{ width: `${Math.min(100, timeEfficiency)}%` }}
-            />
-          </div>
-        </div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <StatCard label="Planned" value={formatDuration(plannedMinutes)} />
+        <StatCard label="Worked" value={formatDuration(workedMinutes)} />
+        <StatCard
+          label="Difference"
+          value={`${deltaMinutes >= 0 ? '+' : '-'}${formatDuration(Math.abs(deltaMinutes))}`}
+          valueClass={deltaMinutes >= 0 ? 'text-success' : 'text-warning'}
+        />
+        <StatCard label="Time used" value={`${efficiency}%`}>
+          <ProgressBar value={efficiency} label="Planned time used" />
+        </StatCard>
       </div>
 
-      {/* Recorded Work Sessions Timeline */}
-      <div className="bg-surface border border-border rounded-2xl p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">
-          Recorded Sessions for this day ({sessions.length})
-        </h2>
+      <section className="card">
+        <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+          <h2 className="text-sm font-medium text-fg">Sessions</h2>
+          {sessions.length > 0 && <span className="text-sm text-fg-subtle">{sessions.length} recorded</span>}
+        </div>
 
         {loading ? (
-          <div className="p-8 text-center text-sm text-gray-400">Loading sessions...</div>
+          <p className="py-12 text-center text-sm text-fg-subtle">Loading…</p>
         ) : sessions.length === 0 ? (
-          <div className="p-8 text-center text-xs text-gray-500">
-            No work sessions recorded for this day yet. Start the timer or log a manual session.
-          </div>
+          <p className="py-12 text-center text-sm text-fg-muted">
+            No sessions for this day. Start the timer or log one manually.
+          </p>
         ) : (
-          <div className="divide-y divide-border/60">
+          <ul className="divide-y divide-border">
             {sessions.map((s) => {
-              const startStr = s.started_at ? new Date(s.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-              const endStr = s.ended_at ? new Date(s.ended_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now';
+              const start = s.started_at ? timeOf(s.started_at) : '';
+              const end = s.ended_at ? timeOf(s.ended_at) : 'now';
               const mins = Math.round((s.duration_seconds || 0) / 60);
+              const label = s.task_title || s.notes || 'General work';
 
               return (
-                <div key={s.id} className="py-3.5 flex items-center justify-between first:pt-0 last:pb-0">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-border flex items-center justify-center text-primary-400">
-                      <Clock className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white">
-                          {s.task_title || s.notes || 'General Work Session'}
-                        </span>
-                        {s.category_name && (
+                <li key={s.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-fg">{label}</p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-subtle">
+                      <span className="tabular-nums">
+                        {start} – {end} · {formatDuration(mins)}
+                      </span>
+                      {s.category_name && (
+                        <span className="inline-flex items-center gap-1.5">
                           <span
-                            className="text-[10px] px-2 py-0.5 rounded-full border"
-                            style={{
-                              backgroundColor: `${s.category_color}15`,
-                              borderColor: `${s.category_color}40`,
-                              color: s.category_color
-                            }}
-                          >
-                            {s.category_name}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-400 mt-0.5 font-mono">
-                        {startStr} – {endStr} ({formatDuration(mins)})
-                      </p>
-                    </div>
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: s.category_color || 'currentColor' }}
+                            aria-hidden="true"
+                          />
+                          {s.category_name}
+                        </span>
+                      )}
+                    </p>
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => handleDeleteSession(s.id)}
-                    className="p-1.5 text-gray-500 hover:text-rose-400 hover:bg-surface-elevated rounded-lg transition-colors cursor-pointer"
-                    title="Delete session"
+                    aria-label={`Delete session "${label}"`}
+                    title="Delete"
+                    className="btn-ghost h-8 w-8 shrink-0 px-0 hover:!text-danger"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
-      </div>
+      </section>
 
-      {/* Manual Session Modal */}
       <ManualSessionModal
         isOpen={isManualModalOpen}
         onClose={() => setIsManualModalOpen(false)}

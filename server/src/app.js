@@ -19,18 +19,17 @@ const allowedOrigins = [
   process.env.CLIENT_URL
 ].filter(Boolean);
 
+const isAllowedOrigin = (origin) =>
+  allowedOrigins.includes(origin) ||
+  // your own Vercel deployments only, e.g. dailytrack-abc123-yourname.vercel.app
+  /^https:\/\/dailytrack[a-z0-9-]*\.vercel\.app$/.test(origin);
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow non-browser requests (like curl, health checks)
-    if (!origin) return callback(null, true);
-
-    if (
-      allowedOrigins.includes(origin) || 
-      origin.endsWith('.vercel.app')
-    ) {
-      return callback(null, true);
-    }
-    return callback(new Error(`CORS blocked for origin: ${origin}`));
+    if (!origin || isAllowedOrigin(origin)) return callback(null, true);
+    const err = new Error(`CORS blocked for origin: ${origin}`);
+    err.status = 403;
+    return callback(err);
   },
   credentials: true
 }));

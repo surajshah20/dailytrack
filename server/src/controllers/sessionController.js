@@ -1,5 +1,15 @@
 import pool from '../config/db.js';
 
+const resolveTimeZone = (req) => {
+  const candidate = req.headers['x-timezone'] || req.user?.timezone || 'UTC';
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: candidate });
+    return candidate;
+  } catch {
+    return 'UTC';
+  }
+};
+
 export const getActiveSession = async (req, res) => {
   try {
     const result = await pool.query(
@@ -44,17 +54,16 @@ export const startSession = async (req, res) => {
       });
     }
 
-    const today = new Date().toISOString().split('T')[0];
-
     const result = await pool.query(
       `INSERT INTO work_sessions (user_id, task_id, category_id, session_date, started_at, is_running, notes)
-       VALUES ($1, $2, $3, $4, NOW(), true, $5)
-       RETURNING 
-         id, user_id, task_id, category_id, 
-         to_char(session_date, 'YYYY-MM-DD') AS session_date,
-         started_at, is_running, notes`,
-      [req.user.id, taskId || null, categoryId || null, today, notes]
+   VALUES ($1, $2, $3, (NOW() AT TIME ZONE $4)::date, NOW(), true, $5)
+   RETURNING 
+     id, user_id, task_id, category_id, 
+     to_char(session_date, 'YYYY-MM-DD') AS session_date,
+     started_at, is_running, notes`,
+      [req.user.id, taskId || null, categoryId || null, resolveTimeZone(req), notes]
     );
+
 
     const session = result.rows[0];
 
@@ -163,12 +172,8 @@ export const logManualSession = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Session date is required' });
     }
 
+    // Prefer start and end times; otherwise use the duration that was sent
     let calculatedMinutes = parseInt(durationMinutes, 10);
-
-    // If start and end times provided, calculate duration from them
-    let startedAt = `${sessionDate}T${startTime || '09:00'}:00.000Z`;
-    let endedAt = `${sessionDate}T${endTime || '10:00'}:00.000Z`;
-
     if (startTime && endTime) {
       const [startH, startM] = startTime.split(':').map(Number);
       const [endH, endM] = endTime.split(':').map(Number);
@@ -176,16 +181,26 @@ export const logManualSession = async (req, res) => {
       if (calculatedMinutes < 0) calculatedMinutes += 24 * 60; // Over midnight
     }
 
-    const durationSeconds = (calculatedMinutes || 0) * 60;
+    if (!(calculatedMinutes > 0)) {
+      return res.status(400).json({ success: false, message: 'Duration must be greater than zero' });
+    }
+
+    const durationSeconds = calculatedMinutes * 60;
 
     await client.query('BEGIN');
 
+    // The start time is read as the user's local time, then stored as an exact moment
     const result = await client.query(
       `INSERT INTO work_sessions (
-         user_id, task_id, category_id, session_date, 
+         user_id, task_id, category_id, session_date,
          started_at, ended_at, duration_seconds, is_running, notes
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8)
+       VALUES (
+         $1, $2, $3, $4::date,
+         (($4::date + $5::time) AT TIME ZONE $6),
+         (($4::date + $5::time) AT TIME ZONE $6) + make_interval(secs => $7::int),
+         $7::int, false, $8
+       )
        RETURNING 
          id, user_id, task_id, category_id,
          to_char(session_date, 'YYYY-MM-DD') AS session_date,
@@ -195,15 +210,15 @@ export const logManualSession = async (req, res) => {
         taskId || null,
         categoryId || null,
         sessionDate,
-        startedAt,
-        endedAt,
+        startTime || '09:00',
+        resolveTimeZone(req),
         durationSeconds,
         notes
       ]
     );
 
     // If attached to a task, increment the task's actual_minutes
-    if (taskId && calculatedMinutes > 0) {
+    if (taskId) {
       await client.query(
         `UPDATE tasks 
          SET actual_minutes = actual_minutes + $1, updated_at = NOW() 

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useTimer } from '../../context/TimerContext.jsx';
-import { Play, Square, PlusCircle } from 'lucide-react';
 
 const formatTimerDisplay = (seconds) => {
   const hrs = Math.floor(seconds / 3600);
@@ -15,133 +14,129 @@ export default function WorkTimer({ tasks = [], categories = [], onSessionFinish
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [sessionNotes, setSessionNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const isRunning = Boolean(activeSession?.is_running);
 
   const handleStart = async () => {
+    setError('');
     setIsSubmitting(true);
     try {
       await startTimer({
         taskId: selectedTaskId || null,
         categoryId: selectedCategoryId || null,
-        notes: sessionNotes
+        notes: sessionNotes,
       });
       setSessionNotes('');
+    } catch {
+      setError('Could not start the timer. Try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleStop = async () => {
+    setError('');
     setIsSubmitting(true);
     try {
       await stopTimer(sessionNotes);
       setSessionNotes('');
       if (onSessionFinished) onSessionFinished();
+    } catch {
+      setError('Could not stop the timer. Try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="bg-surface border border-border rounded-2xl p-6 shadow-xl relative overflow-hidden">
-      {isRunning && (
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/10 rounded-full blur-3xl pointer-events-none" />
-      )}
-
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <section className="card p-5">
+      <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className={`w-2.5 h-2.5 rounded-full ${isRunning ? 'bg-emerald-500 animate-ping' : 'bg-gray-500'}`} />
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-              {isRunning ? 'Work Session In Progress' : 'Work Hour Tracker'}
-            </span>
-          </div>
+          <p className="flex items-center gap-2 text-sm text-fg-muted">
+            <span
+              className={`h-2 w-2 rounded-full ${isRunning ? 'bg-success' : 'bg-border-strong'}`}
+              aria-hidden="true"
+            />
+            {isRunning ? 'Session in progress' : 'Timer stopped'}
+          </p>
 
-          <div className="text-4xl sm:text-5xl font-mono font-bold tracking-tight text-white my-2">
+          <p
+            className="mt-1 text-4xl font-semibold tracking-tight tabular-nums text-fg sm:text-5xl"
+            role="timer"
+            aria-label="Elapsed time"
+          >
             {formatTimerDisplay(elapsedSeconds)}
-          </div>
+          </p>
 
           {isRunning && activeSession?.task_title && (
-            <p className="text-xs text-primary-400 font-medium">
-              Task: <span className="text-white">{activeSession.task_title}</span>
-            </p>
+            <p className="mt-1 text-sm text-fg-muted">{activeSession.task_title}</p>
           )}
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {!isRunning ? (
-            <>
-              <select
-                value={selectedTaskId}
-                onChange={(e) => {
-                  setSelectedTaskId(e.target.value);
-                  const matched = tasks.find((t) => t.id === e.target.value);
-                  if (matched?.category_id) setSelectedCategoryId(matched.category_id);
-                }}
-                className="bg-surface-elevated border border-border rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-primary-500"
-              >
-                <option value="">Link a Task (Optional)</option>
-                {tasks.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.title}
-                  </option>
-                ))}
-              </select>
+        {!isRunning ? (
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <select
+              aria-label="Link a task"
+              value={selectedTaskId}
+              onChange={(e) => {
+                setSelectedTaskId(e.target.value);
+                const matched = tasks.find((t) => String(t.id) === e.target.value);
+                if (matched?.category_id) setSelectedCategoryId(matched.category_id);
+              }}
+              className="input sm:w-48"
+            >
+              <option value="">No task linked</option>
+              {tasks.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title}
+                </option>
+              ))}
+            </select>
 
-              <select
-                value={selectedCategoryId}
-                onChange={(e) => setSelectedCategoryId(e.target.value)}
-                className="bg-surface-elevated border border-border rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-primary-500"
-              >
-                <option value="">Category (Optional)</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+            <select
+              aria-label="Category"
+              value={selectedCategoryId}
+              onChange={(e) => setSelectedCategoryId(e.target.value)}
+              className="input sm:w-40"
+            >
+              <option value="">No category</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
 
-              <button
-                onClick={handleStart}
-                disabled={isSubmitting}
-                className="bg-primary-600 hover:bg-primary-500 text-white font-medium rounded-xl px-5 py-2.5 text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary-600/25 transition-all cursor-pointer"
-              >
-                <Play className="w-4 h-4 fill-white" />
-                <span>Start Work</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={onOpenManualModal}
-                className="p-2.5 bg-surface-elevated hover:bg-border text-gray-300 hover:text-white rounded-xl border border-border transition-colors cursor-pointer"
-                title="Add manual session"
-              >
-                <PlusCircle className="w-4 h-4" />
-              </button>
-            </>
-          ) : (
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                placeholder="What did you work on? (Notes)"
-                value={sessionNotes}
-                onChange={(e) => setSessionNotes(e.target.value)}
-                className="bg-surface-elevated border border-border rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 w-full sm:w-64"
-              />
-
-              <button
-                onClick={handleStop}
-                disabled={isSubmitting}
-                className="bg-rose-600 hover:bg-rose-500 text-white font-medium rounded-xl px-5 py-2.5 text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-600/25 transition-all cursor-pointer whitespace-nowrap"
-              >
-                <Square className="w-4 h-4 fill-white" />
-                <span>Finish Session</span>
-              </button>
-            </div>
-          )}
-        </div>
+            <button type="button" onClick={handleStart} disabled={isSubmitting} className="btn-primary">
+              Start
+            </button>
+            <button type="button" onClick={onOpenManualModal} className="btn-secondary">
+              Log manually
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+              type="text"
+              aria-label="Session notes"
+              placeholder="What did you work on?"
+              value={sessionNotes}
+              onChange={(e) => setSessionNotes(e.target.value)}
+              className="input sm:w-64"
+            />
+            <button type="button" onClick={handleStop} disabled={isSubmitting} className="btn-primary">
+              Finish session
+            </button>
+          </div>
+        )}
       </div>
-    </div>
+
+      {error && (
+        <div role="alert" className="alert-error mt-4">
+          {error}
+        </div>
+      )}
+    </section>
   );
 }

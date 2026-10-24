@@ -1,21 +1,16 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { Clock } from 'lucide-react';
 
 export const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Clock className="w-8 h-8 text-primary-500 animate-spin" />
+      <div role="status" aria-label="Loading" className="flex min-h-dvh items-center justify-center bg-background">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-border-strong border-t-accent" />
       </div>
     );
   }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
+  if (!user) return <Navigate to="/login" replace />;
   return children;
 };

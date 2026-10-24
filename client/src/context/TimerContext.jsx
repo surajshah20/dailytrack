@@ -11,11 +11,15 @@ export const TimerProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const timerIntervalRef = useRef(null);
 
-  // Sync active session on load
+  const clearSession = () => {
+    setActiveSession(null);
+    setElapsedSeconds(0);
+  };
+
+  // Ask the server what is running and align local state with it
   const syncActiveSession = async () => {
     if (!user) {
-      setActiveSession(null);
-      setElapsedSeconds(0);
+      clearSession();
       setLoading(false);
       return;
     }
@@ -26,8 +30,7 @@ export const TimerProvider = ({ children }) => {
         const startMs = new Date(res.data.started_at).getTime();
         setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
       } else {
-        setActiveSession(null);
-        setElapsedSeconds(0);
+        clearSession();
       }
     } catch (err) {
       console.error('Failed to sync timer:', err);
@@ -40,17 +43,24 @@ export const TimerProvider = ({ children }) => {
     syncActiveSession();
   }, [user]);
 
-  // Interval for ticking the live timer
+  // Re-check when the tab becomes visible, in case the session changed elsewhere
+  useEffect(() => {
+    if (!user) return undefined;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') syncActiveSession();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [user]);
+
+  // Tick the live timer from the server's start time
   useEffect(() => {
     if (activeSession && activeSession.is_running) {
       const startMs = new Date(activeSession.started_at).getTime();
 
       timerIntervalRef.current = setInterval(() => {
-        const seconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
-        setElapsedSeconds(seconds);
+        setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
       }, 1000);
-    } else {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     }
 
     return () => {
@@ -59,22 +69,34 @@ export const TimerProvider = ({ children }) => {
   }, [activeSession]);
 
   const startTimer = async ({ taskId, categoryId, notes }) => {
-    const res = await apiStart({ taskId, categoryId, notes });
-    if (res.success) {
-      setActiveSession(res.data);
-      setElapsedSeconds(0);
+    try {
+      const res = await apiStart({ taskId, categoryId, notes });
+      if (res.success) {
+        setActiveSession(res.data);
+        setElapsedSeconds(0);
+      }
+      return res;
+    } catch (err) {
+      // 400 means a session is already running (another tab or device): pick it up
+      if (err.response?.status === 400) await syncActiveSession();
+      throw err;
     }
-    return res;
   };
 
   const stopTimer = async (notes) => {
     if (!activeSession) return null;
-    const res = await apiStop(activeSession.id, { notes });
-    if (res.success) {
-      setActiveSession(null);
-      setElapsedSeconds(0);
+    try {
+      const res = await apiStop(activeSession.id, { notes });
+      if (res.success) clearSession();
+      return res;
+    } catch (err) {
+      // 404 means it was already stopped elsewhere: clear it instead of leaving a ghost timer
+      if (err.response?.status === 404) {
+        clearSession();
+        return null;
+      }
+      throw err;
     }
-    return res;
   };
 
   return (

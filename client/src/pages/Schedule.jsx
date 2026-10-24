@@ -1,50 +1,38 @@
 import { useState, useEffect } from 'react';
-import { 
-  getTasks, 
-  createTask, 
-  updateTask, 
-  toggleTaskStatus, 
-  deleteTask 
-} from '../api/tasks.js';
+import { getTasks, createTask, updateTask, toggleTaskStatus, deleteTask } from '../api/tasks.js';
 import { getCategories } from '../api/categories.js';
-import { 
-  toISODateString, 
-  formatDisplayDate, 
-  addDaysToDate, 
-  formatDuration 
-} from '../utils/dateUtils.js';
+import { toISODateString, formatDisplayDate, formatDuration } from '../utils/dateUtils.js';
+import PageHeader from '../components/common/PageHeader.jsx';
+import DateNavigator from '../components/common/DateNavigator.jsx';
+import ProgressBar from '../components/common/ProgressBar.jsx';
 import TaskItem from '../components/schedule/TaskItem.jsx';
 import TaskModal from '../components/schedule/TaskModal.jsx';
 import DailyReflection from '../components/reflection/DailyReflection.jsx';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Plus, 
-  Calendar as CalendarIcon, 
-  CheckCircle2, 
-  Clock, 
-  ListTodo 
-} from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 export default function Schedule() {
-  const [selectedDate, setSelectedDate] = useState(toISODateString(new Date()));
+  const [searchParams] = useSearchParams();
+const [selectedDate, setSelectedDate] = useState(() => {
+  const fromUrl = searchParams.get('date');
+  return fromUrl && /^\d{4}-\d{2}-\d{2}$/.test(fromUrl) ? fromUrl : toISODateString(new Date());
+});
   const [tasks, setTasks] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [tasksRes, catsRes] = await Promise.all([
-        getTasks(selectedDate),
-        getCategories()
-      ]);
+      const [tasksRes, catsRes] = await Promise.all([getTasks(selectedDate), getCategories()]);
       if (tasksRes.success) setTasks(tasksRes.data);
       if (catsRes.success) setCategories(catsRes.data);
-    } catch (error) {
-      console.error('Error fetching schedule data:', error);
+      setError('');
+    } catch (err) {
+      console.error('Error fetching schedule data:', err);
+      setError('Could not load tasks. Please refresh.');
     } finally {
       setLoading(false);
     }
@@ -54,26 +42,34 @@ export default function Schedule() {
     fetchData();
   }, [selectedDate]);
 
+  const openCreate = () => {
+    setTaskToEdit(null);
+    setIsModalOpen(true);
+  };
+
+  const openEdit = (task) => {
+    setTaskToEdit(task);
+    setIsModalOpen(true);
+  };
+
   const handleToggle = async (taskId) => {
     setTasks((prev) =>
       prev.map((t) =>
-        t.id === taskId
-          ? { ...t, status: t.status === 'completed' ? 'pending' : 'completed' }
-          : t
-      )
+        t.id === taskId ? { ...t, status: t.status === 'completed' ? 'pending' : 'completed' } : t,
+      ),
     );
     try {
       await toggleTaskStatus(taskId);
-    } catch (error) {
+    } catch {
       fetchData();
     }
   };
 
-  const handleSaveTask = async (taskPayload) => {
+  const handleSaveTask = async (payload) => {
     if (taskToEdit) {
-      await updateTask(taskToEdit.id, taskPayload);
+      await updateTask(taskToEdit.id, payload);
     } else {
-      await createTask(taskPayload);
+      await createTask(payload);
     }
     fetchData();
   };
@@ -83,7 +79,7 @@ export default function Schedule() {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
     try {
       await deleteTask(taskId);
-    } catch (error) {
+    } catch {
       fetchData();
     }
   };
@@ -92,149 +88,70 @@ export default function Schedule() {
   const completedTasks = tasks.filter((t) => t.status === 'completed').length;
   const remainingTasks = totalTasks - completedTasks;
   const plannedMinutes = tasks.reduce((acc, t) => acc + (t.estimated_minutes || 0), 0);
-  const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const completion = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
     <div className="space-y-6">
-      {/* Date Header & Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white mb-1">Daily Schedule</h1>
-          <p className="text-sm text-gray-400">{formatDisplayDate(selectedDate)}</p>
+      <PageHeader title="Schedule" subtitle={formatDisplayDate(selectedDate)}>
+        <DateNavigator value={selectedDate} onChange={setSelectedDate} />
+        <button type="button" onClick={openCreate} className="btn-primary w-full sm:w-auto">
+          Add task
+        </button>
+      </PageHeader>
+
+      {error && (
+        <div role="alert" className="alert-error">
+          {error}
         </div>
+      )}
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSelectedDate(addDaysToDate(selectedDate, -1))}
-            className="p-2 rounded-lg bg-surface border border-border text-gray-300 hover:text-white hover:bg-surface-elevated transition-colors cursor-pointer"
-            title="Previous Day"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => setSelectedDate(toISODateString(new Date()))}
-            className="px-3 py-2 rounded-lg bg-surface border border-border text-xs font-semibold text-gray-300 hover:text-white hover:bg-surface-elevated transition-colors cursor-pointer"
-          >
-            Today
-          </button>
-
-          <button
-            onClick={() => setSelectedDate(addDaysToDate(selectedDate, 1))}
-            className="p-2 rounded-lg bg-surface border border-border text-gray-300 hover:text-white hover:bg-surface-elevated transition-colors cursor-pointer"
-            title="Next Day"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-surface border border-border rounded-lg px-3 py-2 text-xs font-mono text-gray-200 focus:outline-none focus:border-primary-500 cursor-pointer"
-          />
-
-          <button
-            onClick={() => {
-              setTaskToEdit(null);
-              setIsModalOpen(true);
-            }}
-            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-500 text-white font-medium rounded-lg px-4 py-2 text-sm shadow-lg shadow-primary-600/20 transition-all cursor-pointer ml-2"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Task</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Snapshot Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-surface border border-border rounded-xl p-4">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Total Tasks</span>
-            <ListTodo className="w-4 h-4 text-primary-400" />
+      {totalTasks > 0 && (
+        <div className="card p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 text-sm">
+            <p>
+              <span className="font-medium tabular-nums text-fg">
+                {completedTasks} of {totalTasks}
+              </span>{' '}
+              <span className="text-fg-muted">tasks done</span>
+            </p>
+            <p className="text-fg-muted">{formatDuration(plannedMinutes)} planned</p>
           </div>
-          <div className="text-2xl font-bold text-white">{totalTasks}</div>
+          <ProgressBar value={completion} label="Tasks completed" />
         </div>
+      )}
 
-        <div className="bg-surface border border-border rounded-xl p-4">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Completed</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          </div>
-          <div className="text-2xl font-bold text-emerald-400">{completedTasks}</div>
+      <section className="card">
+        <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+          <h2 className="text-sm font-medium text-fg">Tasks</h2>
+          {totalTasks > 0 && <span className="text-sm text-fg-subtle">{remainingTasks} remaining</span>}
         </div>
-
-        <div className="bg-surface border border-border rounded-xl p-4">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Planned Work</span>
-            <Clock className="w-4 h-4 text-blue-400" />
-          </div>
-          <div className="text-2xl font-bold text-white">{formatDuration(plannedMinutes)}</div>
-        </div>
-
-        <div className="bg-surface border border-border rounded-xl p-4">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Progress</span>
-            <span className="text-xs font-semibold text-primary-400">{completionPercentage}%</span>
-          </div>
-          <div className="w-full bg-surface-elevated rounded-full h-2 mt-3 overflow-hidden">
-            <div 
-              className="bg-primary-500 h-full rounded-full transition-all duration-300"
-              style={{ width: `${completionPercentage}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Tasks List */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
-          Tasks for this day ({remainingTasks} remaining)
-        </h2>
 
         {loading ? (
-          <div className="p-12 text-center text-sm text-gray-400">Loading daily tasks...</div>
-        ) : tasks.length === 0 ? (
-          <div className="p-12 text-center border border-dashed border-border rounded-2xl bg-surface/30">
-            <CalendarIcon className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-            <h3 className="text-sm font-medium text-white mb-1">No tasks planned for this day</h3>
-            <p className="text-xs text-gray-400 mb-4 max-w-sm mx-auto">
-              Design your schedule by adding your planned tasks and estimated hours.
-            </p>
-            <button
-              onClick={() => {
-                setTaskToEdit(null);
-                setIsModalOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-surface-elevated border border-border text-xs font-medium text-white hover:border-primary-500 transition-colors cursor-pointer"
-            >
-              <Plus className="w-4 h-4 text-primary-400" />
-              Add First Task
+          <p className="py-12 text-center text-sm text-fg-subtle">Loading…</p>
+        ) : totalTasks === 0 ? (
+          <div className="py-12 text-center">
+            <p className="text-sm text-fg-muted">No tasks for this day.</p>
+            <button type="button" onClick={openCreate} className="btn-secondary mt-4">
+              Add task
             </button>
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <ul className="divide-y divide-border">
             {tasks.map((task) => (
               <TaskItem
                 key={task.id}
                 task={task}
                 onToggle={handleToggle}
-                onEdit={(task) => {
-                  setTaskToEdit(task);
-                  setIsModalOpen(true);
-                }}
+                onEdit={openEdit}
                 onDelete={handleDelete}
               />
             ))}
-          </div>
+          </ul>
         )}
-      </div>
+      </section>
 
-      {/* Daily Reflection Journal */}
       <DailyReflection selectedDate={selectedDate} />
 
-      {/* Task Modal */}
       <TaskModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
